@@ -46,11 +46,14 @@ int pgm_lire(char nom_fichier[], int matrice[MAX_HAUTEUR][MAX_LARGEUR],
 					d++;
 				}
 				o++;
+				p_metadonnees->dateCreation[d] = '\0';                   // dernier caracter de la chaine donne des dechets
 				while(premierligne[o] != '\0' && premierligne[o] != '\n'){
 					p_metadonnees->lieuCreation[l] = premierligne[o];
 					o++;
 					l++;
 				}
+				p_metadonnees->lieuCreation[l] = '\0';                   // dernier caractere de la chaine donne des dechets
+				
 				lenNom = strlen(p_metadonnees->auteur);
 				lenDate = strlen(p_metadonnees->dateCreation);
 				lenLieu = strlen(p_metadonnees->lieuCreation);
@@ -59,12 +62,14 @@ int pgm_lire(char nom_fichier[], int matrice[MAX_HAUTEUR][MAX_LARGEUR],
 				
 				}				
 				fgets(format, 20, flot_data);
-				if((format[0] != 'P' || format[1] != '2')){
-					return ERREUR_FORMAT;                            // mauvais format d'image avec metadonnees
-				}
+				
 				} else {
 					strcpy(format, premierligne);
-				}		
+				}
+
+				if((format[0] != 'P' || format[1] != '2')){
+					return ERREUR_FORMAT;                            // mauvais format d'image avec metadonnees
+				}				
 				fscanf(flot_data, "%d", p_colonnes);
 				fscanf(flot_data, "%d", p_lignes);
 				
@@ -113,7 +118,7 @@ int pgm_ecrire(char nom_fichier[], int matrice[MAX_HAUTEUR][MAX_LARGEUR],
 			fprintf(flot_data,"#%s;%s;%s\n", metadonnees.auteur, metadonnees.dateCreation, metadonnees.lieuCreation);
 			}
 			fprintf(flot_data,"P2\n");
-			fprintf(flot_data,"%d %d\n", lignes, colonnes);
+			fprintf(flot_data,"%d %d\n", colonnes, lignes);
 			fprintf(flot_data,"%d\n", maxval);
 			
 			for(n = 0; n < lignes; n++){
@@ -278,26 +283,25 @@ int pgm_extraire(int matrice[MAX_HAUTEUR][MAX_LARGEUR], int lignes1,
 int colonnes1, int lignes2, int colonnes2, int *p_lignes, int *p_colonnes){
 	int deltaX, deltaY;
 	int m, n;
+	int m1, n1;
 	
-	//printf("%d\t", *p_colonnes);
-	//printf("%d\n", *p_lignes);
 	
-	if(lignes1 < 0 || colonnes1 < 0 || lignes2 <= lignes1 || colonnes2 <= colonnes1 || lignes2 > *p_lignes ||
-		colonnes2 > *p_colonnes || *p_lignes > MAX_HAUTEUR || *p_colonnes > MAX_LARGEUR){
+	if(lignes1 < 0 || colonnes1 < 0 || lignes2 >= *p_lignes || colonnes2 >= *p_colonnes 
+			|| *p_lignes > MAX_HAUTEUR || *p_colonnes > MAX_LARGEUR){
 		return ERREUR;
 	} else {
-		deltaX = colonnes2 - colonnes2;
-		deltaY = lignes2 - lignes2;
+		deltaX = (colonnes2 - colonnes1)+1;
+		deltaY = (lignes2 - lignes1)+1;
 		int matTemp[deltaY][deltaX];
 		
-		for(m = 0; m < deltaY; m++){
-			for(n = 0; n < deltaX; n++){
+		for(m = 0; m <= deltaY; m++){
+			for(n = 0; n <= deltaX; n++){
 				matTemp[m][n] = matrice[colonnes1 + m][lignes1 + n];
 			}
 		}
-		for(m = 0; m < deltaY; m++){
-			for(n = 0; n < deltaX; n++){
-				matrice[m][n] = matTemp[m][n];
+		for(m1 = 0; m1 < deltaY; m1++){
+			for(n1 = 0; n1 < deltaX; n1++){
+				matrice[m1][n1] = matTemp[m1][n1];
 			}
 		}
 		*p_lignes = deltaY;
@@ -310,10 +314,9 @@ int colonnes1, int lignes2, int colonnes2, int *p_lignes, int *p_colonnes){
 int pgm_reduire(int matrice[MAX_HAUTEUR][MAX_LARGEUR],
 				int *p_lignes, int *p_colonnes){
 					
-	int n1, m1, k;
-	int n2, m2, l;
-	int n3, m3;
+	int i,j,n = 0,m = 0;
 	int tempLignes, tempColonnes;
+	int tempMat[MAX_HAUTEUR][MAX_LARGEUR];
 	
 	if(*p_lignes > MAX_HAUTEUR || *p_colonnes > MAX_LARGEUR){
 		return ERREUR;
@@ -329,31 +332,21 @@ int pgm_reduire(int matrice[MAX_HAUTEUR][MAX_LARGEUR],
 		} else {
 			tempColonnes = *p_colonnes;
 		}
+		for(i = 0; i < tempLignes; i+=2, m++){
+			for(j = 0, n = 0; j < tempColonnes; j+=2, n++){
+				tempMat[m][n] = (matrice[i][j]+matrice[i][j+1]+matrice[i+1][j]+matrice[i+1][j+1])/4;
+			}
+		}
 		
-		int tempMat1[tempLignes][tempColonnes/2];
-		int tempMat2[tempLignes/2][tempColonnes/2];
 		
-		for(n1 = 0; n1 < tempLignes; n1++){
-			k = 0;
-			for(m1 = 0; m1 < tempColonnes; m1 += 2){
-				tempMat1[n1][k] = (matrice[n1][m1] + matrice[n1][m1+1])/2; 
-				k++;
-			}
-		}
-		for(n2 = 0; n2 < tempLignes; n2 += 2){
-			l = 0;
-			for(m2 = 0; m2 < tempColonnes/2; m2++){
-				tempMat2[l][m2] = (tempMat1[n2][m2] + tempMat1[n2+1][m2])/2;
-				l++;
-			}
-		}
-		for(n3 = 0; n3 < tempLignes/2; n3++){
-			for(m3 = 0; m3 < tempColonnes/2; m3++){
-				matrice[n3][m3] = tempMat2[n3][m3];
-			}
-		}
 		*p_colonnes = tempColonnes/2;
 		*p_lignes = tempLignes/2;
+		
+		for(m = 0; m < tempLignes/2; m++){
+			for(n = 0; n < tempColonnes/2; n++){
+				matrice[m][n] = tempMat[m][n];
+			}
+		}
  
 	
 	}
@@ -386,32 +379,43 @@ int pgm_sont_identiques(int matrice1[MAX_HAUTEUR][MAX_LARGEUR], int lignes1, int
 
 int pgm_pivoter90(int matrice[MAX_HAUTEUR][MAX_LARGEUR],
 				int *p_lignes, int *p_colonnes, int sens){
-	// int m, n;
-	// int tempMat[p_lignes][p_colonnes];
+	int m, n;
+	int lignes, colonnes;
+	int tempMat[MAX_HAUTEUR][MAX_LARGEUR];
 	
-	// if(*p_lignes > MAX_HAUTEUR || *p_colonnes > MAX_LARGEUR){
-		// return ERREUR;
-	// } else {
-		// if(sens == 1){
-			// for(m = 0; m < p_lignes; m++){
-				// for(n = 0; n < p_colonnes; n++){
-					// matrice[m][n] = tempMat[*p_lignes - 1 - n][m];
-				// } 
-					
-				// }
-			// } else {
-				// for(m = 0; m < p_lignes; m++){
-					// for(n = 0; n < p_colonnes; n++){
-						// matrice[m][n] = tempMat[][];
-					// } 
-					
-				// }
+	if(*p_lignes > MAX_HAUTEUR || *p_colonnes > MAX_LARGEUR || (sens != 1 && sens != 0)){
+		return ERREUR;
+	} else {
+		lignes = *p_lignes;
+		colonnes = *p_colonnes;
+		
+		for(m = 0; m < colonnes; m++){
+					for(n = 0; n < lignes; n++){
+						tempMat[m][n] = matrice[n][m];
+					} 
+				}
 				
-			// }
-	// }
+		if(sens == 1){
+			for(m = 0; m < colonnes; m++){
+				for(n = 0; n < lignes; n++){
+					matrice[m][n] = tempMat[m][lignes - 1 - n];
+					} 
+				}	
+			} else {
+				for(m = 0; m < colonnes; m++){
+					for(n = 0; n < lignes; n++){
+						matrice[m][n] = tempMat[colonnes - 1 - m][n];
+					} 
+				}
+				
+			}
+			*p_colonnes = lignes;
+			*p_lignes = colonnes;			
+	}
+
 		
 	
-	return 0;
+	return OK;
 }
 
 int ppm_lire(char nom_fichier[], struct RGB matrice[MAX_HAUTEUR][MAX_LARGEUR],
@@ -430,7 +434,7 @@ int *p_lignes, int *p_colonnes, int *p_maxval, struct MetaData *metadonnees){
 	metadonnees->dateCreation[0] = '\0';
 	metadonnees->lieuCreation[0] = '\0';
 	
-	if(flot_data == NULL){
+	if(flot_data == NULL){ 
 		return ERREUR_FICHIER;
 		} else {
 			fgets(premierligne, 256, flot_data);         			// lire premiere ligne 
@@ -449,11 +453,13 @@ int *p_lignes, int *p_colonnes, int *p_maxval, struct MetaData *metadonnees){
 					d++;
 				}
 				o++;
+				
 				while(premierligne[o] != '\0' && premierligne[o] != '\n'){
 					metadonnees->lieuCreation[l] = premierligne[o];
 					o++;
 					l++;
 				}
+				
 				lenNom = strlen(metadonnees->auteur);
 				lenDate = strlen(metadonnees->dateCreation);
 				lenLieu = strlen(metadonnees->lieuCreation);
@@ -478,11 +484,11 @@ int *p_lignes, int *p_colonnes, int *p_maxval, struct MetaData *metadonnees){
 					if(*p_maxval > MAX_VALEUR){
 						return ERREUR_FORMAT;								// valeur max trop grande
 					} else {
-						for(n = 0; n < *p_colonnes; n++){
-							for (m = 0; m < *p_lignes; m++){
-								fscanf(flot_data, "%d", &matrice[n][m].valeurR);
-								fscanf(flot_data, "%d", &matrice[n][m].valeurG);
-								fscanf(flot_data, "%d", &matrice[n][m].valeurB);
+						for(m = 0; m < *p_lignes; m++){
+							for (n = 0; n < *p_colonnes; n++){
+								fscanf(flot_data, "%d", &matrice[m][n].valeurR);
+								fscanf(flot_data, "%d", &matrice[m][n].valeurG);
+								fscanf(flot_data, "%d", &matrice[m][n].valeurB);
 							}
 						}
 						fclose(flot_data);
@@ -513,7 +519,7 @@ int lignes, int colonnes, int maxval, struct MetaData metadonnees){
 			fprintf(flot_data,"#%s;%s;%s\n", metadonnees.auteur, metadonnees.dateCreation, metadonnees.lieuCreation);
 			}
 			fprintf(flot_data,"P3\n");
-			fprintf(flot_data,"%d %d\n", lignes, colonnes);
+			fprintf(flot_data,"%d %d\n", colonnes, lignes);
 			fprintf(flot_data,"%d\n", maxval);
 			
 			for(n = 0; n < lignes; n++){
@@ -594,5 +600,48 @@ int ppm_sont_identiques(
 
 int ppm_pivoter90(struct RGB matrice[MAX_HAUTEUR][MAX_LARGEUR],
 int *p_lignes, int *p_colonnes, int sens){
-	return 0;
+	
+	int m, n;
+	int lignes, colonnes;
+	struct RGB tempMat[MAX_HAUTEUR][MAX_LARGEUR];
+	
+	if(*p_lignes > MAX_HAUTEUR || *p_colonnes > MAX_LARGEUR || (sens != 1 && sens != 0)){
+		return ERREUR;
+	} else {
+		lignes = *p_lignes;
+		colonnes = *p_colonnes;
+		
+		for(m = 0; m < colonnes; m++){
+					for(n = 0; n < lignes; n++){
+					tempMat[m][n].valeurR = matrice[n][m].valeurR;
+					tempMat[m][n].valeurG = matrice[n][m].valeurG;
+					tempMat[m][n].valeurB = matrice[n][m].valeurB;
+					} 
+				}
+				
+		if(sens == 1){
+			for(m = 0; m < colonnes; m++){
+				for(n = 0; n < lignes; n++){
+					matrice[m][n].valeurR = tempMat[m][lignes - 1 - n].valeurR;
+					matrice[m][n].valeurG = tempMat[m][lignes - 1 - n].valeurG;
+					matrice[m][n].valeurB = tempMat[m][lignes - 1 - n].valeurB;
+					} 
+				}	
+			} else {
+				for(m = 0; m < colonnes; m++){
+					for(n = 0; n < lignes; n++){
+						matrice[m][n].valeurR = tempMat[colonnes - 1 - m][n].valeurR;
+						matrice[m][n].valeurG = tempMat[colonnes - 1 - m][n].valeurG;
+						matrice[m][n].valeurB = tempMat[colonnes - 1 - m][n].valeurB;
+					} 
+				}
+				
+			}
+		
+			*p_colonnes = lignes;
+			*p_lignes = colonnes;
+			
+					 
+			}
+			return OK;
 }
