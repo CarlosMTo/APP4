@@ -1,8 +1,7 @@
 /********
 Fichier: bibliotheque_images.c
-Auteurs: Domingo Palao Munoz
-         Charles-Antoine Brunet
-Date: 27 octobre 2017
+Auteurs: Carlos Torres
+Date: 31 octobre 2017
 Description: Fichier de distribution pour l'APP4snte de S1.
 ********/
 
